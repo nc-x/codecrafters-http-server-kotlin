@@ -77,37 +77,36 @@ suspend fun handleRequest(request: Request, writer: ByteWriteChannel, directory:
     val method = request.method
     when {
         path == "/" -> {
-            respond200(writer)
+            respond200(writer, request)
         }
 
         path == "/user-agent" -> {
-            respond(writer, PlainText(Status200, request.headers["User-Agent"]!!))
+            respond(writer, request, PlainText(Status200, request.headers["User-Agent"]!!))
         }
 
         path.startsWith("/echo/") -> {
-            respond(writer, PlainText(Status200, path.substringAfter("/echo/")))
+            respond(writer, request, PlainText(Status200, path.substringAfter("/echo/")))
         }
 
         method == Method.GET && path.startsWith("/files/") -> {
-            if (directory == null) return respond404(writer)
+            if (directory == null) return respond404(writer, request)
             val fileName = path.substringAfter("/files/")
             val file = File("$directory/$fileName")
-            if (!file.exists()) return respond404(writer)
-            respond200(writer)
-            respond(writer, Bytes(Status200, file.readBytes()))
+            if (!file.exists()) return respond404(writer, request)
+            respond(writer, request, Bytes(Status200, file.readBytes()))
         }
 
         method == Method.POST && path.startsWith("/files/") -> {
-            if (directory == null) return respond404(writer)
+            if (directory == null) return respond404(writer, request)
             val fileName = path.substringAfter("/files/")
             val file = File("$directory/$fileName")
-            if (request.body == null) return respond400(writer)
+            if (request.body == null) return respond400(writer, request)
             file.writeBytes(request.body)
-            respond201(writer)
+            respond201(writer, request)
         }
 
         else -> {
-            respond404(writer)
+            respond404(writer, request)
         }
     }
 }
