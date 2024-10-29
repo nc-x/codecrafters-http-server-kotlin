@@ -1,3 +1,4 @@
+import Status.Status200
 import io.ktor.utils.io.*
 import java.io.File
 
@@ -80,11 +81,11 @@ suspend fun handleRequest(request: Request, writer: ByteWriteChannel, directory:
         }
 
         path == "/user-agent" -> {
-            respond200(writer, request.headers["User-Agent"]!!)
+            respond(writer, PlainText(Status200, request.headers["User-Agent"]!!))
         }
 
         path.startsWith("/echo/") -> {
-            respond200(writer, path.substringAfter("/echo/"))
+            respond(writer, PlainText(Status200, path.substringAfter("/echo/")))
         }
 
         method == Method.GET && path.startsWith("/files/") -> {
@@ -92,7 +93,8 @@ suspend fun handleRequest(request: Request, writer: ByteWriteChannel, directory:
             val fileName = path.substringAfter("/files/")
             val file = File("$directory/$fileName")
             if (!file.exists()) return respond404(writer)
-            respond200(writer, file.readBytes())
+            respond200(writer)
+            respond(writer, Bytes(Status200, file.readBytes()))
         }
 
         method == Method.POST && path.startsWith("/files/") -> {
@@ -108,34 +110,4 @@ suspend fun handleRequest(request: Request, writer: ByteWriteChannel, directory:
             respond404(writer)
         }
     }
-}
-
-suspend fun respond200(writer: ByteWriteChannel) {
-    writer.writeByteArray("HTTP/1.1 200 OK\r\n\r\n".toByteArray())
-}
-
-suspend fun respond200(writer: ByteWriteChannel, message: String) {
-    writer.writeByteArray("HTTP/1.1 200 OK\r\n".toByteArray())
-    writer.writeByteArray("Content-Type: text/plain\r\n".toByteArray())
-    writer.writeByteArray("Content-Length: ${message.length}\r\n\r\n".toByteArray())
-    writer.writeString(message)
-}
-
-suspend fun respond200(writer: ByteWriteChannel, message: ByteArray) {
-    writer.writeByteArray("HTTP/1.1 200 OK\r\n".toByteArray())
-    writer.writeByteArray("Content-Type: application/octet-stream\r\n".toByteArray())
-    writer.writeByteArray("Content-Length: ${message.size}\r\n\r\n".toByteArray())
-    writer.writeByteArray(message)
-}
-
-suspend fun respond201(writer: ByteWriteChannel) {
-    writer.writeByteArray("HTTP/1.1 201 Created\r\n\r\n".toByteArray())
-}
-
-suspend fun respond400(writer: ByteWriteChannel) {
-    writer.writeByteArray("HTTP/1.1 400 Bad Request\r\n\r\n".toByteArray())
-}
-
-suspend fun respond404(writer: ByteWriteChannel) {
-    writer.writeByteArray("HTTP/1.1 404 Not Found\r\n\r\n".toByteArray())
 }
