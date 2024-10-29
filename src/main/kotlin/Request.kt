@@ -20,3 +20,18 @@ data class Request(
 
     }
 }
+
+
+suspend fun handleRequest(request: Request, writer: ByteWriteChannel) {
+    if (request.path == "/") {
+        writer.writeByteArray("HTTP/1.1 200 OK\r\n\r\n".toByteArray())
+    } else if (request.path.startsWith("/echo/")) {
+        val str = request.path.substringAfter("/echo/")
+        writer.writeByteArray("HTTP/1.1 200 OK\r\n".toByteArray())
+        writer.writeByteArray("Content-Type: text/plain\r\n".toByteArray())
+        writer.writeByteArray("Content-Length: ${str.length}\r\n\r\n".toByteArray())
+        writer.writeByteArray(str.toByteArray())
+    } else {
+        writer.writeByteArray("HTTP/1.1 404 Not Found\r\n\r\n".toByteArray())
+    }
+}

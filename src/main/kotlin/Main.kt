@@ -1,6 +1,5 @@
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
-import io.ktor.utils.io.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 
@@ -16,11 +15,7 @@ fun main() = runBlocking {
             val reader = socket.openReadChannel()
             val request = Request.parse(reader)
             val writer = socket.openWriteChannel(autoFlush = true)
-
-            if (request.path == "/")
-                writer.writeByteArray("HTTP/1.1 200 OK\r\n\r\n".toByteArray())
-            else
-                writer.writeByteArray("HTTP/1.1 404 Not Found\r\n\r\n".toByteArray())
+            handleRequest(request, writer)
         }
     }
 }
