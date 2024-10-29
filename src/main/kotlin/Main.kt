@@ -11,8 +11,16 @@ fun main() = runBlocking {
         .tcp()
         .bind("127.0.0.1", 4221)
 
-    server.accept().use {socket ->
-        val writer = socket.openWriteChannel(autoFlush = true)
-        writer.writeByteArray("HTTP/1.1 200 OK\r\n\r\n".toByteArray())
+    while (true) {
+        server.accept().use { socket ->
+            val reader = socket.openReadChannel()
+            val request = Request.parse(reader)
+            val writer = socket.openWriteChannel(autoFlush = true)
+
+            if (request.path == "/")
+                writer.writeByteArray("HTTP/1.1 200 OK\r\n\r\n".toByteArray())
+            else
+                writer.writeByteArray("HTTP/1.1 404 Not Found\r\n\r\n".toByteArray())
+        }
     }
 }
