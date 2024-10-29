@@ -1,4 +1,5 @@
 import io.ktor.utils.io.*
+import java.io.File
 
 enum class Method {
     GET
@@ -35,20 +36,29 @@ data class Request(
     }
 }
 
-suspend fun handleRequest(request: Request, writer: ByteWriteChannel) {
+suspend fun handleRequest(request: Request, writer: ByteWriteChannel, directory: String?) {
     val path = request.path
     when {
         path == "/" -> {
             respond200(writer, null)
         }
 
+        path == "/user-agent" -> {
+            respond200(writer, request.headers["User-Agent"]!!)
+        }
+
         path.startsWith("/echo/") -> {
             respond200(writer, path.substringAfter("/echo/"))
         }
 
-        path == "/user-agent" -> {
-            respond200(writer, request.headers["User-Agent"]!!)
+        path.startsWith("/files/") -> {
+            if (directory == null) return respond404(writer)
+            val fileName = path.substringAfter("/files/")
+            val file = File("$directory/$fileName")
+            if (!file.exists()) return respond404(writer)
+            respond200(writer, file.readText(), "application/octet-stream")
         }
+
 
         else -> {
             respond404(writer)
@@ -56,13 +66,13 @@ suspend fun handleRequest(request: Request, writer: ByteWriteChannel) {
     }
 }
 
-suspend fun respond200(writer: ByteWriteChannel, message: String?) {
+suspend fun respond200(writer: ByteWriteChannel, message: String?, contentType: String = "text/plain") {
     writer.writeByteArray("HTTP/1.1 200 OK\r\n".toByteArray())
     if (message == null) {
         writer.writeByteArray("\r\n".toByteArray())
         return
     }
-    writer.writeByteArray("Content-Type: text/plain\r\n".toByteArray())
+    writer.writeByteArray("Content-Type: ${contentType}\r\n".toByteArray())
     writer.writeByteArray("Content-Length: ${message.length}\r\n\r\n".toByteArray())
     writer.writeByteArray(message.toByteArray())
 }

@@ -4,7 +4,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
-fun main() = runBlocking {
+fun main(args: Array<String>) = runBlocking {
+    var directory: String? = null
+    if (args.isNotEmpty()) {
+        assert(args[0] == "--directory")
+        directory = args[1]
+    }
+
     val selectorManager = SelectorManager(Dispatchers.IO)
     val server = aSocket(selectorManager)
         .configure { reuseAddress = true }
@@ -18,7 +24,7 @@ fun main() = runBlocking {
                 val reader = socket.openReadChannel()
                 val request = Request.parse(reader)
                 val writer = socket.openWriteChannel(autoFlush = true)
-                handleRequest(request, writer)
+                handleRequest(request, writer, directory)
             }
         }
     }
