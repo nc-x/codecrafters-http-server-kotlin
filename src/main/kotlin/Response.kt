@@ -3,8 +3,12 @@ import Status.Status201
 import Status.Status400
 import Status.Status404
 import io.ktor.utils.io.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.util.zip.GZIPOutputStream
+
+val SUPPORTED_ENCODINGS = setOf("gzip")
 
 enum class Status(val msg: String) {
     Status200("200 OK"),
@@ -13,10 +17,8 @@ enum class Status(val msg: String) {
     Status404("404 Not Found"),
 }
 
-sealed class Response(val status: String, var body: ByteArray?) {
+sealed class Response(val status: String, val body: ByteArray?) {
     abstract val type: String
-    val length: Int
-        get() = body?.size ?: 0
 }
 
 class PlainText(status: Status, body: String) : Response(status.msg, body.toByteArray()) {
@@ -56,17 +58,20 @@ suspend fun respond(writer: ByteWriteChannel, request: Request, response: Respon
         writer.writeByteArray("\r\n".toByteArray())
         return
     }
-    if (request.headers["Accept-Encoding"] == "gzip") {
-        writer.writeByteArray("Content-Encoding: gzip\r\n".toByteArray())
-        response.body = gzip(response.body!!)
-    }
+    val body =
+        request.headers["Accept-Encoding"]?.let { compressIfPossible(writer, it, response.body) } ?: response.body
     writer.writeByteArray("Content-Type: ${response.type}\r\n".toByteArray())
-    writer.writeByteArray("Content-Length: ${response.length}\r\n\r\n".toByteArray())
-    writer.writeByteArray(response.body!!)
+    writer.writeByteArray("Content-Length: ${body.size}\r\n\r\n".toByteArray())
+    writer.writeByteArray(body)
 }
 
-fun gzip(content: ByteArray): ByteArray {
+suspend fun compressIfPossible(writer: ByteWriteChannel, clientEncodings: String, body: ByteArray): ByteArray? {
+    val availableEncodings = clientEncodings.split(",").map(String::trim).filter { it in SUPPORTED_ENCODINGS }
+    if ("gzip" !in availableEncodings) return null
+    writer.writeByteArray("Content-Encoding: gzip\r\n".toByteArray())
     val gzipped = ByteArrayOutputStream()
-    GZIPOutputStream(gzipped).use { it.write(content) }
+    withContext(Dispatchers.IO) {
+        GZIPOutputStream(gzipped).use { it.write(body) }
+    }
     return gzipped.toByteArray()
 }
