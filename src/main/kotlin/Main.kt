@@ -1,16 +1,14 @@
-import java.net.ServerSocket;
+import io.ktor.network.selector.*
+import io.ktor.network.sockets.*
+import kotlinx.coroutines.Dispatchers
 
-fun main() {
-    // You can use print statements as follows for debugging, they'll be visible when running tests.
-    println("Logs from your program will appear here!")
+suspend fun main() {
+    val selectorManager = SelectorManager(Dispatchers.IO)
+    val server = aSocket(selectorManager)
+        .configure { reuseAddress = true }
+        .tcp()
+        .bind("127.0.0.1", 4221)
 
-    // Uncomment this block to pass the first stage
-    // var serverSocket = ServerSocket(4221)
-    //
-    // // Since the tester restarts your program quite often, setting SO_REUSEADDR
-    // // ensures that we don't run into 'Address already in use' errors
-    // serverSocket.reuseAddress = true
-    //
-    // serverSocket.accept() // Wait for connection from client.
-    // println("accepted new connection")
+    server.accept()
+    println("accepted new connection")
 }

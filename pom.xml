@@ -79,5 +79,10 @@
             <artifactId>kotlin-stdlib</artifactId>
             <version>1.9.10</version>
         </dependency>
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-network-jvm</artifactId>
+            <version>3.0.0</version>
+        </dependency>
     </dependencies>
 </project>
